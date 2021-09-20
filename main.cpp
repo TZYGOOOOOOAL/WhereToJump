@@ -1,8 +1,11 @@
+#define _CRT_SECURE_NO_WARNINGS
+
 #include <stdlib.h>
 #include <time.h>
-#include <opencv.hpp>
-using namespace cv;
+#include <opencv2/imgproc.hpp>
+#include <opencv2/highgui.hpp>
 
+using namespace cv;
 #define PLAYER_NUM 4
 
 char* map_path = "data/sg.png";
