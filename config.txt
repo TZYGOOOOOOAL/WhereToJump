@@ -1,0 +1,4 @@
+map sg
+player_num 4
+rand_mode 0
+keep_pos -1
