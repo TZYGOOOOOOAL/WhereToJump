@@ -1,5 +1,5 @@
 # WhereToJump
-![Image text](https://github.com/TZYGOOOOOOAL/WhereToJump/blob/master/README/result.gif)
+![Image text](https://github.com/TZYGOOOOOOAL/WhereToJump/blob/master/README/resultV2.0.gif)
 
 ## V2.0
 ### 1.1 支持配置文件读取参数以及地点坐标 
