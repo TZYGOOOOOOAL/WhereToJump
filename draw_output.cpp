@@ -2,7 +2,6 @@
 #include "draw_output.h"
 
 
-
 // 绘制1个位置单个玩家
 void draw_one_id_on_one_place(Mat &map, cv::Point &location, int player_id, Scalar& player_color,
 	int circle_r, double font_scale)
@@ -34,18 +33,22 @@ void draw_all_ids_on_one_place(Mat &map, cv::Point &center_loc,
 	int cy = center_loc.y;
 
 	// 圆半径
-	int r = (map.cols + map.rows) / 2 / 750.0 * 15 + 0.5;  // 750 分辨率图像圆圈半径 为15
+	int r = int((map.cols + map.rows) / 2 / 750.0 * 15 + 0.5);  // 750 分辨率图像圆圈半径 为15
 	// 字大小
 	double font_scale = 0.8 * r / 15;
 
 	// 遍历每个玩家
-	int d = 2 * r;
-	double total_len = d * player_num;
+	int d = 2 * r;		// 每个标记大小直径
+	int total_len = d * player_num;
+
+	// 绘制起点
+	int draw_orig_x = 0;
+	int draw_orig_y = cy;
 
 	for (int i = 0; i < player_num; i++)
 	{
-		int x = cx + (i * d + r) - total_len/2;
-		Point sub_center(x, cy);
+		draw_orig_x = cx + (i * d + r) - total_len / 2;
+		Point sub_center(draw_orig_x, draw_orig_y);
 		draw_one_id_on_one_place(map, sub_center, player_ids_in_one_place[i],
 			player_colors[i], r, font_scale);
 	}
@@ -56,21 +59,24 @@ void draw_all_ids_on_one_place(Mat &map, cv::Point &center_loc,
 // 绘制所有玩家位置
 void draw_players_on_map(Config* p_conf, cv::Scalar *colors)
 {
-	vector<int> player_locs(p_conf->player_num);
+	int loc_idx = 0;
+	vector<int> player_loc_idxes(p_conf->player_num);
 
 	// 每个位置玩家
 	for (int i = 0; i < p_conf->player_num; i++)
 	{
-		player_locs[i] = p_conf->loc_idxes[i];
+		player_loc_idxes[i] = p_conf->loc_keeped_idxes_tmp[i];
 	}
 
-	for (int loc_idx = 0; loc_idx < p_conf->loc_num; loc_idx++)
+	for (int i = 0; i < p_conf->loc_keeped_num; i++)
 	{
+		loc_idx = p_conf->loc_keeped_idxes_tmp[i];
 		vector<int> player_ids_in_one_place;
 		vector<Scalar> player_colors;
+
 		for (int player_idx = 0; player_idx < p_conf->player_num; player_idx++)
 		{
-			if (player_locs[player_idx] == loc_idx)
+			if (player_loc_idxes[player_idx] == loc_idx)
 			{
 				player_ids_in_one_place.push_back(player_idx);
 				player_colors.push_back(colors[player_idx]);
@@ -79,9 +85,10 @@ void draw_players_on_map(Config* p_conf, cv::Scalar *colors)
 		
 		// 结束一个位置遍历
 		if (!player_ids_in_one_place.empty())
-			draw_all_ids_on_one_place(p_conf->map, p_conf->locations[loc_idx],
-			player_ids_in_one_place, player_colors);
-
+		{
+			draw_all_ids_on_one_place(p_conf->map, p_conf->locations_total[loc_idx],
+				player_ids_in_one_place, player_colors);
+		}
 	}
 	return;
 }

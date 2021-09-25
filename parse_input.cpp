@@ -2,7 +2,9 @@
 #include <string.h>
 #include "parse_input.h"
 
-#define MAX_LOCATION_NUM 100
+#define IN_RANGE(x, min, max) (((x)>=(min)) && ((x) <= (max)))
+#define IS_NUMBER(x) IN_RANGE((x-'0'), 0, 9)
+#define IS_NOT_NUMBER(x) !(IS_NUMBER(x))
 
 /*
 每个地图对应坐标文件
@@ -55,8 +57,8 @@ keep_pos -1		（地点mask，-1为全选）
 */
 int parse_conf(char* conf_filepath, Config* p_conf)
 {
-	FILE *fp=NULL;
-	char str0[20], str1[MAX_LOCATION_NUM * 4];
+	FILE *fp = NULL;
+	char str0[20], str1[20];
 	cv::Point* p_total_locations = NULL;
 	int location_total_num;
 	char map_filepath[256] = "data/map/";
@@ -70,8 +72,9 @@ int parse_conf(char* conf_filepath, Config* p_conf)
 
 	while (fscanf(fp, "%s%s", str0, str1) != EOF)
 	{
-		// read map image & conf
-		if (!strcmp(str0, "map")){
+		/* ****** read map image & conf ******* */
+		if (!strcmp(str0, "map"))
+		{
 			// 地图文件
 			strcat(map_filepath, str1);
 			strcat(map_filepath, ".png");
@@ -82,13 +85,15 @@ int parse_conf(char* conf_filepath, Config* p_conf)
 			parse_location(loc_filepath, &p_total_locations, &location_total_num);
 		}
 
-		// player number
-		else if (!strcmp(str0, "player_num")){
+		/* ****** parse player_num ******* */
+		else if (!strcmp(str0, "player_num"))
+		{
 			p_conf->player_num = atoi(str1);
 		}
 
-		// rand mode
-		else if (!strcmp(str0, "rand_mode")){
+		/* ****** parse rand_mode ******* */
+		else if (!strcmp(str0, "rand_mode"))
+		{
 			switch (atoi(str1))
 			{
 			case 0 :
@@ -100,18 +105,29 @@ int parse_conf(char* conf_filepath, Config* p_conf)
 			}
 		}
 
-		// 保留的地点
-		else if (!strcmp(str0, "keep_pos")){
+		/* ****** 保留的地点 ******* */
+		else if (!strcmp(str0, "keep_pos"))
+		{
+			// 首先保证地点坐标已经被加载
+			if (p_total_locations == NULL){
+				printf("Map locations data should load first !!!\n");
+				return -1;
+			}
+
+			int loc_real_num = 0;
+			unsigned int *keep_mask = (unsigned int *)malloc(location_total_num * sizeof(unsigned int));
+			memset(keep_mask, 0, sizeof(unsigned int) * location_total_num);
 
 			// 获得需要的地点位置
 			if (!strcmp(str1, "-1")){		// 全选
-				p_conf->locations = p_total_locations;
-				p_conf->loc_num = location_total_num;
+				memset(keep_mask, -1, sizeof(unsigned int) * location_total_num);
+				loc_real_num = location_total_num;
 			}
 			else{
-				int keep_mask[MAX_LOCATION_NUM];
-				memset(keep_mask, 0, sizeof(int)*MAX_LOCATION_NUM);
-				keep_mask[atoi(str1)] = 1;
+				int first_idx = atoi(str1);	// 第一个数字存在str1字符串中
+				if (IN_RANGE(first_idx, 0, location_total_num-1))
+					keep_mask[atoi(str1)] = 1;
+
 				char c;
 				int n;			// char转换成的数字（0-9）
 				int idx = -1;	// 哪个loc 下标被选中
@@ -120,47 +136,61 @@ int parse_conf(char* conf_filepath, Config* p_conf)
 					c = fgetc(fp);
 					if (c == ' ' || c == EOF || c == '\r' || c == '\n')
 					{
-						if (idx >= 0 && idx < MAX_LOCATION_NUM)
+						if (IN_RANGE(idx, 0, location_total_num-1))
 							keep_mask[idx] = 1;
 						if (c != ' ')
 							break;
 						idx = 0;
 					}
-					else
+					else if (IS_NUMBER(c))
 					{
 						n = c - '0';
 						idx = idx * 10 + n;
-					}					
+					}
+					else
+					{
+						printf("Location not Integer !!!\n");
+						return -1;
+					}
 				} while (true);
 
 				// 防止重复坐标导致长度统计错误
-				int loc_num = 0;
 				for (int i = 0; i < location_total_num; i++)
 				{
 					if (keep_mask[i] == 1)
-						loc_num++;
+						loc_real_num++;
 				}
-
-				// 选中loction
-				p_conf->loc_num = loc_num;
-				p_conf->locations = (cv::Point*)malloc(loc_num*sizeof(cv::Point));
-				int loc_idx = 0;
-				for (int i = 0; i < location_total_num; i++)
-				{
-					if (keep_mask[i] == 1)
-					{
-						p_conf->locations[loc_idx].x = p_total_locations[i].x;
-						p_conf->locations[loc_idx].y = p_total_locations[i].y;
-						loc_idx++;
-					}
-				}
-				free(p_total_locations);
 			}// end parse keep pos
 
-			p_conf->loc_idxes = (int *)malloc(p_conf->loc_num * sizeof(int));
-			for (int i = 0; i < p_conf->loc_num; i++){
-				p_conf->loc_idxes[i] = i;
+			p_conf->locations_total = p_total_locations;
+			p_conf->loc_total_num = location_total_num;
+			p_conf->loc_keeped_num = loc_real_num;
+
+			// TODO: 还是不能保存全部
+			p_conf->loc_keeped_idxes = (int *)malloc(p_conf->loc_keeped_num * sizeof(int));
+			p_conf->loc_keeped_idxes_tmp = (int *)malloc(p_conf->loc_keeped_num * sizeof(int));
+
+			int idx_real = 0;
+			for (int idx_total = 0; idx_total < location_total_num; idx_total++){
+				if (keep_mask[idx_total] > 0){
+					if (!IN_RANGE(idx_real, 0, loc_real_num - 1))
+					{
+						printf("Parse Error !!!");
+						return -1;
+					}
+					p_conf->loc_keeped_idxes[idx_real] = idx_total;
+					idx_real++;
+				}
 			}
+
+			memcpy(p_conf->loc_keeped_idxes_tmp, p_conf->loc_keeped_idxes, p_conf->loc_keeped_num * sizeof(int));
+			free(keep_mask);
+		} // end parse keep_pos
+
+		/* ****** 未知字段 ******* */
+		else
+		{
+			printf("Unknown Segment : \"%s\"\n", str0);
 		}
 	}
 	return 0;

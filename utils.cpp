@@ -14,26 +14,33 @@ void random_arrangement(Config* p_conf)
 
 void random_arrangement_norepeat(Config* p_conf)
 {
-	int* loc_idexs = p_conf->loc_idxes;
+	int* loc_idexs = p_conf->loc_keeped_idxes_tmp;
 	int rand_idx;
 	int tmp;
-	for (int i = p_conf->loc_num - 1; i > 0; i--)
+	for (int i = p_conf->loc_keeped_num - 1; i > 0; i--)
 	{
 		rand_idx = rand_range(0, i);
 		tmp = loc_idexs[i];
 		loc_idexs[i] = loc_idexs[rand_idx];
 		loc_idexs[rand_idx] = tmp;
 	}
+	return;
 }
 
 void random_arrangement_repeat(Config* p_conf)
 {
-	int* loc_idexs = p_conf->loc_idxes;
+	int real_num = p_conf->loc_keeped_num;
+	int* loc_idexs = p_conf->loc_keeped_idxes;
+	int* loc_idexs_tmp = p_conf->loc_keeped_idxes_tmp;
+	memcpy(loc_idexs_tmp, loc_idexs, real_num * sizeof(int));
+
 	int rand_idx;
-	for (int i = 0; i < p_conf->loc_num; i++)
+	for (int i = 0; i < real_num; i++)
 	{
-		loc_idexs[i] = rand_range(0, p_conf->loc_num);
+		rand_idx = rand_range(0, real_num - 1);
+		loc_idexs_tmp[i] = loc_idexs[rand_idx];
 	}
+	return;
 }
 
 // [l, r)

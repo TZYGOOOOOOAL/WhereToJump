@@ -22,12 +22,12 @@ Scalar colors[4] = {
 
 int main()
 {
-	srand((unsigned)time(NULL));
+	//srand((unsigned)time(NULL));
+	srand(0);
 	Config conf;
 	_init(&conf);
 
 	parse_conf("config.txt", &conf);
-
 
 	//test_rand(player_ids);
 
@@ -51,9 +51,11 @@ int main()
 
 void _init(Config* p_conf)
 {
-	p_conf->loc_num = 0;
-	p_conf->locations = NULL;
-	p_conf->loc_idxes = NULL;
+	p_conf->loc_keeped_num = 0;
+	p_conf->loc_total_num = 0;
+	p_conf->locations_total = NULL;
+	p_conf->loc_keeped_idxes = NULL;
+	p_conf->loc_keeped_idxes_tmp = NULL;
 	p_conf->map = Mat();
 	p_conf->player_num = 0;
 	p_conf->rang_mode = RAND_NOREPEAT;
@@ -61,8 +63,10 @@ void _init(Config* p_conf)
 
 void _deinit(Config* p_conf)
 {
-	free(p_conf->locations);
-	p_conf->locations = NULL;
-	free(p_conf->loc_idxes);
-	p_conf->loc_idxes = NULL;
+	free(p_conf->locations_total);
+	p_conf->locations_total = NULL;
+	free(p_conf->loc_keeped_idxes);
+	p_conf->loc_keeped_idxes = NULL;
+	free(p_conf->loc_keeped_idxes_tmp);
+	p_conf->loc_keeped_idxes_tmp = NULL;
 }
